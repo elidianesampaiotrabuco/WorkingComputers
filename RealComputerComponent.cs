@@ -5,6 +5,7 @@ using ZenFulcrum.EmbeddedBrowser;
 using System.Collections;
 using MTM101BaldAPI.Reflection;
 using UnityEngine.UI;
+using MTM101BaldAPI.AssetTools;
 
 namespace WorkingComputers
 {
@@ -12,6 +13,7 @@ namespace WorkingComputers
 
     public class RealComputerComponent : MonoBehaviour, IClickable<int>
     {
+        ComputerAudioManager audioManager = new ComputerAudioManager();
         Image reticle;
         ComputerUser user = ComputerUser.None;
         GameObject browserDisplay;
@@ -19,7 +21,9 @@ namespace WorkingComputers
         SoundObject audUse = Resources.FindObjectsOfTypeAll<SoundObject>().ToList().First(x => x.name == "SwingDoorLock");
         int userPlayer;
         Transform cameraTarget;
-        TimeScaleModifier npcStopper = new TimeScaleModifier(0f,0f,1f);
+        TimeScaleModifier npcStopper = new TimeScaleModifier(0f, 0f, 1f);
+        Browser browser;
+        bool checkForEgg;
 
         public void ClickableSighted(int player)
         {
@@ -51,15 +55,17 @@ namespace WorkingComputers
             user = ComputerUser.Player;
             reticle = (Image)CoreGameManager.Instance.GetHud(userPlayer).ReflectionGetVariable("reticle");
             reticle.gameObject.SetActive(false);
+            browserDisplay.GetComponent<PointerUIMesh>().viewCamera = CoreGameManager.Instance.GetCamera(userPlayer).camCom;
             browserDisplay.GetComponent<MeshCollider>().enabled = true;
+            browser.UpdateCursor();
             CoreGameManager.Instance.GetPlayer(userPlayer).plm.Entity.SetInteractionState(false);
             CoreGameManager.Instance.GetPlayer(userPlayer).plm.Entity.SetFrozen(true);
             CoreGameManager.Instance.GetCamera(userPlayer).SetControllable(false);
             CoreGameManager.Instance.GetCamera(userPlayer).UpdateTargets(this.cameraTarget, 20);
             CursorManager.Instance.UnlockCursor();
             CoreGameManager.Instance.disablePause = true;
-            StartCoroutine(CameraFocus(CoreGameManager.Instance.GetPlayer(userPlayer)));
-            
+            StartCoroutine(ComputerLoop(CoreGameManager.Instance.GetPlayer(userPlayer)));
+            browserDisplay.GetComponent<PointerUIMesh>().viewCamera = CoreGameManager.Instance.GetCamera(0).camCom;
             //freeze time
             if (WorkingComputersPlugin.plugin.timeFreeze.Value) CoreGameManager.Instance.GetPlayer(userPlayer).ec.AddTimeScale(npcStopper);
         }
@@ -68,7 +74,9 @@ namespace WorkingComputers
         {
             user = ComputerUser.None;
             reticle.gameObject.SetActive(true);
+            browserDisplay.GetComponent<PointerUIMesh>().viewCamera = null;
             browserDisplay.GetComponent<MeshCollider>().enabled = false;
+            browser.UpdateCursor(); 
             CoreGameManager.Instance.GetCamera(userPlayer).UpdateTargets(null, 20);
             CoreGameManager.Instance.GetPlayer(userPlayer).plm.Entity.SetInteractionState(true);
             CoreGameManager.Instance.GetPlayer(userPlayer).plm.Entity.SetFrozen(false);
@@ -80,23 +88,35 @@ namespace WorkingComputers
             userPlayer = -1;
         }
 
-        IEnumerator CameraFocus(PlayerManager player)
+        IEnumerator ComputerLoop(PlayerManager player)
         {
             while (user == ComputerUser.Player)
             {
-                if (InputManager.Instance.GetDigitalInput("Pause", true) && user == ComputerUser.Player)
+                //leave
+                if (Input.GetKeyDown(WorkingComputersPlugin.plugin.leaveKey.Value))
                 {
                     ExitComputerPlayer();
                 }
                 //reset
-                if (Input.GetKeyDown(KeyCode.Home) && browserDisplay.GetComponent<Browser>().Url != "https://google.com")
+                if (Input.GetKeyDown(WorkingComputersPlugin.plugin.resetKey.Value))
                 {
-                    browserDisplay.GetComponent<Browser>().Url = "https://google.com";
+                    browserDisplay.GetComponent<Browser>().Url = WorkingComputersPlugin.plugin.homePage.Value;
                 }
                 //previous
-                if (Input.GetKeyDown(KeyCode.Insert))
+                if (Input.GetKeyDown(WorkingComputersPlugin.plugin.previousKey.Value))
                 {
                     browserDisplay.GetComponent<Browser>().GoBack();
+                }
+
+                //check for easter egg
+                if (WorkingComputersPlugin.plugin.easterEggs.Value)
+                {
+                    if (browser.IsLoadingRaw) checkForEgg = false;  
+                    if (browser.IsLoaded && !checkForEgg)
+                    {
+                        SiteEasterEggManager.Instance.TryForEasterEgg(browser.Url, player);
+                        checkForEgg = true;
+                    }
                 }
                 yield return null;
             }
@@ -114,12 +134,12 @@ namespace WorkingComputers
             browserDisplay.transform.localRotation = rotation;
 
             //browser component
-            Browser browserComp = browserDisplay.AddComponent<Browser>();
-            browserComp.Url = "https://google.com";
-            browserComp.Resize(1280, 820);
-            browserComp.baseColor = Color.white;
+            browser = browserDisplay.AddComponent<Browser>();
+            browser.Url = WorkingComputersPlugin.plugin.homePage.Value;
+            browser.Resize(1280, 840);
+            browser.baseColor = Color.white;
             browserDisplay.GetComponent<MeshRenderer>().material = gameObject.GetComponent<MeshRenderer>().material;
-            browserDisplay.GetComponent<MeshRenderer>().material.SetTexture("_LightGuide", Resources.FindObjectsOfTypeAll<Texture2D>().ToList().First(x => x.name == "WhiteTexture"));
+            browserDisplay.GetComponent<MeshRenderer>().material.SetTexture("_LightGuide", AssetLoader.TextureFromMod(WorkingComputersPlugin.plugin, "ScreenLightmap.png"));
             browserDisplay.name = "BrowserDisplay";
             browserDisplay.GetComponent<MeshCollider>().enabled = false;
 
@@ -130,8 +150,6 @@ namespace WorkingComputers
             ctTemp.transform.localPosition = new Vector3(-3.9f, 1.76f, 0f);
             ctTemp.transform.localRotation = rotation;
             cameraTarget = ctTemp.transform;
-
-            browserDisplay.GetComponent<PointerUIMesh>().viewCamera = CoreGameManager.Instance.GetCamera(0).camCom;
         }
     }
 }

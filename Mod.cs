@@ -15,44 +15,74 @@ namespace WorkingComputers
     {
         public const string projectGuid = "silverspringing.workingcomputers";
         public const string projectName = "Working Computers";
-        public const string projectVersion = "0.0.1.0";
+        public const string projectVersion = "0.0.2.0";
     }
 
     [BepInPlugin(ProjectData.projectGuid, ProjectData.projectName, ProjectData.projectVersion)]
     public class WorkingComputersPlugin : BaseUnityPlugin
     {
         public static WorkingComputersPlugin plugin;
+        //features
         public ConfigEntry<bool> characterUse;
         public ConfigEntry<bool> timeFreeze;
+        public ConfigEntry<bool> easterEggs;
+        //navigation keys (temporary workaround until i add the ui)
+        public ConfigEntry<KeyCode> previousKey;
+        public ConfigEntry<KeyCode> resetKey;
+        public ConfigEntry<KeyCode> leaveKey;
+        //presets
+        public ConfigEntry<string> homePage;
 
         void Awake()
         {
             Harmony harmony = new Harmony(ProjectData.projectGuid);
             harmony.PatchAllConditionals();
             plugin = this;
+
+            //Features
             characterUse = plugin.Config.Bind(
-                "Working Computers", "Characters Use Computers", false, "If enabled, certain NPCs will also be able to use computers."
+                "Features", "Characters Use Computers (NOT CURRENTLY IMPLEMENTED!)", false, "If enabled, certain NPCs will also be able to use computers."
             );
             timeFreeze = plugin.Config.Bind(
-                "Working Computers", "Time Freeze", false, "If enabled, time will freeze while you're using a computer."
+                "Features", "Time Freeze", false, "If enabled, time will freeze while you're using a computer."
             );
+            easterEggs = plugin.Config.Bind(
+                "Features", "Easter Eggs", true, "If enabled, visiting certain sites will trigger unique events."
+            );
+            //Keybinds
+            previousKey = plugin.Config.Bind(
+                "Keybinds", "Previous Key", KeyCode.Insert, "Key to go back to the previous page. This may be removed in the future."
+            );
+            resetKey = plugin.Config.Bind(
+                "Keybinds", "Reset Key", KeyCode.Home, "Key to reset the computer to the home page. This may be removed in the future."
+            );
+            leaveKey = plugin.Config.Bind(
+                "Keybinds", "Leave Key", KeyCode.Escape, "Key to leave the computer. This may be removed in the future."
+            );
+            //Presets
+            homePage = plugin.Config.Bind(
+                "Presets", "Home Page", "https://google.com", "The computer's home page. I wouldn't advise changing this!"
+            );
+
             LoadingEvents.RegisterOnLoadingScreenStart(Info, Configure());
         }
 
         IEnumerator Configure()
         {
             yield return 1;
-            yield return "Updating computers...";
-            SetComputers();
+            yield return "Setting up...";
+            Setup();
             yield break;
         }
 
-        void SetComputers()
+        void Setup()
         {
             //add component to all computers
             GameObject Computer = Resources.FindObjectsOfTypeAll<GameObject>().ToList().First(x => x.name == "MyComputer");
             Computer.AddComponent<RealComputerComponent>();
-            Instantiate(Computer);
+            //create site easter egg manager
+            GameObject newManager = new GameObject("SiteEasterEggManager");
+            newManager.AddComponent<SiteEasterEggManager>();
         }
     }
 }
