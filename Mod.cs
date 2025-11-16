@@ -15,10 +15,11 @@ namespace WorkingComputers
     {
         public const string projectGuid = "silverspringing.workingcomputers";
         public const string projectName = "Working Computers";
-        public const string projectVersion = "0.0.2.0";
+        public const string projectVersion = "0.0.3.0";
     }
 
     [BepInPlugin(ProjectData.projectGuid, ProjectData.projectName, ProjectData.projectVersion)]
+    [BepInDependency("mtm101.rulerp.bbplus.baldidevapi")]
     public class WorkingComputersPlugin : BaseUnityPlugin
     {
         public static WorkingComputersPlugin plugin;
