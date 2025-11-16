@@ -16,6 +16,25 @@ namespace WorkingComputers
             //check full url
             switch (Site)
             {
+             //Baldi's Basics Classic
+                case "https://basically-games.itch.io/baldis-basics":
+                case "https://gamejolt.com/games/baldis-basics/342754":
+                    if (visitedSites.Contains("BBC"))
+                    {
+                        CoreGameManager.Instance.AddPoints(50, player.playerNumber, true);
+                        visitedSites.AddItem("BBC");
+                    }
+                    flag = true;
+                    break;
+                    //Baldi's Basics Birthday Bash
+                case "https://basically-games.itch.io/baldis-basics-birthday-bash":
+                    if (visitedSites.Contains("Party"))
+                    {
+                        CoreGameManager.Instance.AddPoints(50, player.playerNumber, true);
+                        visitedSites.AddItem("Party");
+                    }
+                    flag = true;
+                    break;
                 //Baldi's Basics Classic Remastered
                 case "https://store.steampowered.com/app/1712830/Baldis_Basics_Classic_Remastered/":
                 case "https://basically-games.itch.io/baldis-basics-classic-remastered":
